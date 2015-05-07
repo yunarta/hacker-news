@@ -18,9 +18,19 @@ android {
         versionName "1.0"
     }
 
+    signingConfigs {
+        release {
+            storeFile file('../keystore/android.jks')
+            storePassword 'android'
+            keyAlias 'android'
+            keyPassword 'android'
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled false
+            signingConfig signingConfigs.release
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
@@ -32,4 +42,6 @@ dependencies {
     compile 'com.parse.bolts:bolts-android:1.2.0'
     compile 'com.google.code.gson:gson:2.3'
     compile 'com.android.support:support-v4:+'
+    compile 'com.mobilesolutionworks:works-util:1.0.4'
+    compile 'com.squareup.picasso:picasso:2.5.2'
 }

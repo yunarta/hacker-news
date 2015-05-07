@@ -2,7 +2,9 @@ package com.yunarta.hackernews.ui.fragment;
 
 import android.animation.Animator;
 import android.app.FragmentTransaction;
+import android.content.Intent;
 import android.content.res.Resources;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.v4.widget.SwipeRefreshLayout;
@@ -14,16 +16,20 @@ import android.view.View;
 import android.view.ViewAnimationUtils;
 import android.view.ViewGroup;
 import android.widget.AbsListView;
-import android.widget.AdapterView;
 import android.widget.BaseAdapter;
+import android.widget.ImageView;
 import android.widget.ListView;
-import android.widget.TextView;
+import android.widget.Toast;
 
+import com.mobilesolutionworks.android.util.ViewUtils;
+import com.squareup.picasso.Picasso;
 import com.yunarta.hackernews.R;
 import com.yunarta.hackernews.api.RestAPIManager;
 import com.yunarta.hackernews.api.entity.Story;
 import com.yunarta.hackernews.api.entity.TopStories;
 import com.yunarta.hackernews.ui.base.BaseFragment;
+
+import java.util.concurrent.Callable;
 
 import bolts.Continuation;
 import bolts.Task;
@@ -99,7 +105,6 @@ public class TopStoriesFragment extends BaseFragment {
 
         @Override
         public Object getItem(int position) {
-//            Log.d("[hn]", "get item");
             return null;
         }
 
@@ -112,42 +117,98 @@ public class TopStoriesFragment extends BaseFragment {
         public View getView(int position, View convertView, ViewGroup parent) {
             if (convertView == null) {
                 convertView = getActivity().getLayoutInflater().inflate(R.layout.cell_story, null);
+                convertView.findViewById(R.id.icon).setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(final View v) {
+                        if (v.getTag() == null) return;
+
+                        Task.call(new Callable<Object>() {
+                            @Override
+                            public Object call() throws Exception {
+                                Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse((String) v.getTag()));
+                                startActivity(intent);
+                                return true;
+                            }
+                        }).continueWith(new Continuation<Object, Object>() {
+                            @Override
+                            public Object then(Task<Object> task) throws Exception {
+                                if (task.isFaulted()) {
+                                    Toast.makeText(getActivity(), "Failed to open " + v.getTag(), Toast.LENGTH_SHORT).show();
+                                }
+                                return null;
+                            }
+                        });
+                    }
+                });
+                convertView.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        Integer position = (Integer) view.getTag(R.id.position);
+                        Story story = mStories.get(position);
+
+                        Resources resources = getResources();
+                        view.setBackgroundColor(resources.getColor(android.R.color.white));
+                        view.setElevation(resources.getDimension(R.dimen.card_elevation));
+
+                        String transitionName = "transition-" + story.id;
+
+                        TransitionInflater ti = TransitionInflater.from(getActivity());
+
+                        setSharedElementReturnTransition(ti.inflateTransition(R.transition.tr_read_story));
+                        setExitTransition(ti.inflateTransition(android.R.transition.explode));
+
+                        Bundle args = new Bundle();
+                        args.putString("transitionName", transitionName);
+                        args.putInt("position", position);
+
+                        args.putSerializable("story", story);
+
+                        StoryCommentsFragment fragment = new StoryCommentsFragment();
+                        fragment.setArguments(args);
+
+                        fragment.setSharedElementEnterTransition(ti.inflateTransition(R.transition.tr_read_story));
+
+                        fragment.setEnterTransition(ti.inflateTransition(android.R.transition.explode));
+
+                        FragmentTransaction ft = getFragmentManager().beginTransaction();
+                        ft.addToBackStack("top");
+                        ft.addSharedElement(view, transitionName);
+                        ft.replace(R.id.fragment_container, fragment);
+                        ft.commit();
+
+                    }
+                });
             }
 
             Story story = mStories.get(position);
             convertView.setTransitionName("transition-" + story.id);
+            convertView.setTag(R.id.position, position);
 
-            TextView textView;
-
-            textView = (TextView) convertView.findViewById(R.id.number);
-            textView.setText("#" + (position + 1));
-
-            TextView title = (TextView) convertView.findViewById(R.id.title);
-            TextView domain = (TextView) convertView.findViewById(R.id.domain);
-            TextView meta = (TextView) convertView.findViewById(R.id.meta);
-            TextView commentNum = (TextView) convertView.findViewById(R.id.comment_num);
-
-            View storyPanel = convertView.findViewById(R.id.story);
-//            Log.d("[hn]", "get view, title = " + story.title);
+            ViewUtils.vuSetText(convertView, "#" + (position + 1), R.id.number);
             if (TextUtils.isEmpty(story.title)) {
-                title.setText("...");
-                domain.setText("");
-                meta.setText("");
-                commentNum.setText("");
+                ViewUtils.vuSetText(convertView, "...", R.id.title);
+                ViewUtils.vuSetText(convertView, "", R.id.domain);
+                ViewUtils.vuSetText(convertView, "", R.id.meta);
+                ViewUtils.vuSetText(convertView, "", R.id.comment_num);
 
-                storyPanel.setVisibility(View.INVISIBLE);
+                ViewUtils.vuSetVisibility(convertView, View.INVISIBLE, R.id.story);
+                ViewUtils.vuSetImageResource(convertView, R.drawable.ic_launcher, R.id.icon).setTag(null);
             } else {
-                title.setText(story.title);
-                domain.setText(story.domain);
-                meta.setText(DateUtils.getRelativeTimeSpanString(story.time * 1000) + " by " + story.by);
-                commentNum.setText(story.descendants);
+                ImageView icon = ViewUtils.vuFind(convertView, R.id.icon);
+                icon.setTag(story.url);
+                Picasso.with(getActivity()).load("http://grabicon.com/icon?domain=" + story.domain + "&size=256&origin=github.com/yunarta").error(R.drawable.ic_launcher).into(icon);
 
-                storyPanel.setVisibility(View.VISIBLE);
+                ViewUtils.vuSetText(convertView, story.title, R.id.title);
+                ViewUtils.vuSetText(convertView, story.domain, R.id.domain);
+                ViewUtils.vuSetText(convertView, story.score + " points by " + story.by + " " + DateUtils.getRelativeTimeSpanString(story.time * 1000), R.id.meta);
+                ViewUtils.vuSetText(convertView, story.descendants, R.id.comment_num);
+                ViewUtils.vuSetVisibility(convertView, View.VISIBLE, R.id.story);
 
                 if (story.state == 2) {
                     story.state = 3;
 
                     try {
+                        View storyPanel = convertView.findViewById(R.id.story);
                         Animator anim = ViewAnimationUtils.createCircularReveal(storyPanel, storyPanel.getWidth(), 0, 0, Math.max(storyPanel.getWidth(), storyPanel.getHeight()));
                         anim.start();
                     } catch (Exception e) {
@@ -228,42 +289,42 @@ public class TopStoriesFragment extends BaseFragment {
             ListView listView = (ListView) getView().findViewById(R.id.list);
             listView.setOnScrollListener(new OnScrollListenerImpl());
             listView.setAdapter(mAdapter);
-            listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-                @Override
-                public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                    Story story = mStories.get(position);
-
-                    Resources resources = getResources();
-                    view.setBackgroundColor(resources.getColor(android.R.color.white));
-                    view.setElevation(resources.getDimension(R.dimen.card_elevation));
-
-                    String transitionName = "transition-" + story.id;
-
-                    TransitionInflater ti = TransitionInflater.from(getActivity());
-
-                    setSharedElementReturnTransition(ti.inflateTransition(R.transition.tr_read_story));
-                    setExitTransition(ti.inflateTransition(android.R.transition.explode));
-
-                    Bundle args = new Bundle();
-                    args.putString("transitionName", transitionName);
-                    args.putInt("position", position);
-
-                    args.putSerializable("story", story);
-
-                    StoryCommentsFragment fragment = new StoryCommentsFragment();
-                    fragment.setArguments(args);
-
-                    fragment.setSharedElementEnterTransition(ti.inflateTransition(R.transition.tr_read_story));
-
-                    fragment.setEnterTransition(ti.inflateTransition(android.R.transition.explode));
-
-                    FragmentTransaction ft = getFragmentManager().beginTransaction();
-                    ft.addToBackStack("top");
-                    ft.addSharedElement(view, transitionName);
-                    ft.replace(R.id.fragment_container, fragment);
-                    ft.commit();
-                }
-            });
+//            listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+//                @Override
+//                public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+//                    Story story = mStories.get(position);
+//
+//                    Resources resources = getResources();
+//                    view.setBackgroundColor(resources.getColor(android.R.color.white));
+//                    view.setElevation(resources.getDimension(R.dimen.card_elevation));
+//
+//                    String transitionName = "transition-" + story.id;
+//
+//                    TransitionInflater ti = TransitionInflater.from(getActivity());
+//
+//                    setSharedElementReturnTransition(ti.inflateTransition(R.transition.tr_read_story));
+//                    setExitTransition(ti.inflateTransition(android.R.transition.explode));
+//
+//                    Bundle args = new Bundle();
+//                    args.putString("transitionName", transitionName);
+//                    args.putInt("position", position);
+//
+//                    args.putSerializable("story", story);
+//
+//                    StoryCommentsFragment fragment = new StoryCommentsFragment();
+//                    fragment.setArguments(args);
+//
+//                    fragment.setSharedElementEnterTransition(ti.inflateTransition(R.transition.tr_read_story));
+//
+//                    fragment.setEnterTransition(ti.inflateTransition(android.R.transition.explode));
+//
+//                    FragmentTransaction ft = getFragmentManager().beginTransaction();
+//                    ft.addToBackStack("top");
+//                    ft.addSharedElement(view, transitionName);
+//                    ft.replace(R.id.fragment_container, fragment);
+//                    ft.commit();
+//                }
+//            });
 
             //                loadStories(listView.getFirstVisiblePosition(), listView.getLastVisiblePosition());
             return null;

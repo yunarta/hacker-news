@@ -20,6 +20,8 @@ import android.widget.BaseAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
 
+import com.mobilesolutionworks.android.util.ViewUtils;
+import com.yunarta.hackernews.BuildConfig;
 import com.yunarta.hackernews.R;
 import com.yunarta.hackernews.api.RestAPIManager;
 import com.yunarta.hackernews.api.entity.Story;
@@ -61,7 +63,7 @@ public class ThreadedCommentsFragment extends BaseFragment {
             mStory = (Story) args.getSerializable("story");
             mPosition = args.getInt("position");
             mTransitionName = args.getString("transitionName");
-        } else {
+        } else if (BuildConfig.DEBUG) {
             mStory = new Story(9504939);
             mStory.title = "NSA phone surveillance not authorized: U.S. appeals court";
             mStory.domain = "www.google.com";
@@ -70,6 +72,12 @@ public class ThreadedCommentsFragment extends BaseFragment {
             mStory.descendants = "20";
             mStory.kids = new ArrayList<Integer>(Arrays.asList(9505349, 9505265, 9505178, 9505337, 9505210));
         }
+
+        ArrayList<Story> comments = new ArrayList<Story>(mStory.kids.size());
+        for (Integer kid : mStory.kids) {
+            comments.add(new Story(kid));
+        }
+        mStory.comments = comments;
 
         mLoadTask = Task.forResult(mStory);
     }
@@ -165,13 +173,6 @@ public class ThreadedCommentsFragment extends BaseFragment {
 
         public BaseAdapterImpl(Story story) {
             mStory = story;
-
-            ArrayList<Story> comments = new ArrayList<Story>(mStory.kids.size());
-            for (Integer kid : mStory.kids) {
-                comments.add(new Story(kid));
-            }
-
-            mStory.comments = comments;
         }
 
         @Override
@@ -181,7 +182,6 @@ public class ThreadedCommentsFragment extends BaseFragment {
 
         @Override
         public Object getItem(int position) {
-//            Log.d("[hn]", "get item");
             return null;
         }
 
@@ -194,48 +194,20 @@ public class ThreadedCommentsFragment extends BaseFragment {
         public View getView(int position, View convertView, ViewGroup parent) {
             if (convertView == null) {
                 convertView = getActivity().getLayoutInflater().inflate(R.layout.cell_comment, null);
-//                convertView.setOnClickListener(new View.OnClickListener() {
-//                    @Override
-//                    public void onClick(View v) {
-////                        Toast.makeText(getActivity(), "Click on body", Toast.LENGTH_SHORT).show();
-//                    }
-//                });
-//
-//                TextView commentNum = (TextView) convertView.findViewById(R.id.comment_num);
-//                commentNum.setOnClickListener(new View.OnClickListener() {
-//                    @Override
-//                    public void onClick(View v) {
-////                        Toast.makeText(getActivity(), "Click on comment", Toast.LENGTH_SHORT).show();
-//                    }
-//                });
             }
 
             Story story = mStory.comments.get(position);
             convertView.setTransitionName("comment-" + story.id);
 
-            TextView textView;
-
-            textView = (TextView) convertView.findViewById(R.id.number);
-            textView.setText("#" + (position + 1));
-
-            TextView text = (TextView) convertView.findViewById(R.id.text);
-            TextView meta = (TextView) convertView.findViewById(R.id.meta);
-            TextView commentNum = (TextView) convertView.findViewById(R.id.comment_num);
-            TextView readMore = (TextView) convertView.findViewById(R.id.read_more);
-
-            View storyPanel = convertView.findViewById(R.id.story);
-//            Log.d("[hn]", "get view, text = " + story.text);
+            ViewUtils.vuSetText(convertView, "#" + (position + 1), R.id.number);
             if (TextUtils.isEmpty(story.text)) {
-                text.setText("...");
-                text.setMaxLines(1);
-                meta.setText("");
-
-                commentNum.setText("");
-                commentNum.setClickable(false);
-
-                readMore.setVisibility(View.GONE);
-                storyPanel.setVisibility(View.INVISIBLE);
+                ViewUtils.vuSetText(convertView, "...", R.id.text).setMaxLines(1);
+                ViewUtils.vuSetText(convertView, "", R.id.meta);
+                ViewUtils.vuSetText(convertView, "", R.id.comment_num);
+                ViewUtils.vuSetVisibility(convertView, View.GONE, R.id.read_more);
+                ViewUtils.vuSetVisibility(convertView, View.INVISIBLE, R.id.story);
             } else {
+                TextView text = (TextView) convertView.findViewById(R.id.text);
                 text.setMaxLines(Integer.MAX_VALUE);
                 String commentText = Html.fromHtml(story.text).toString();
 
@@ -247,27 +219,25 @@ public class ThreadedCommentsFragment extends BaseFragment {
                 text.setText(commentText);
 
                 if (maxLines > 4) {
-                    readMore.setText("Read more (" + (maxLines - 4) + " lines)");
-                    readMore.setVisibility(View.VISIBLE);
+                    text.setMaxLines(4);
+
+                    ViewUtils.vuSetText(convertView, "Read more (" + (maxLines - 4) + " lines)", R.id.read_more).setVisibility(View.VISIBLE);
                 } else {
-                    readMore.setVisibility(View.VISIBLE);
+                    ViewUtils.vuSetVisibility(convertView, View.GONE, R.id.read_more);
                 }
 
-                meta.setText(DateUtils.getRelativeTimeSpanString(story.time * 1000) + " by " + story.by);
-                commentNum.setText(String.valueOf(story.kids.size()));
-                commentNum.setClickable(story.kids.size() > 0);
-                commentNum.setTag(story);
-
-                storyPanel.setVisibility(View.VISIBLE);
+                ViewUtils.vuSetText(convertView, DateUtils.getRelativeTimeSpanString(story.time * 1000) + " by " + story.by, R.id.meta);
+                ViewUtils.vuSetText(convertView, String.valueOf(story.kids.size()), R.id.comment_num);
+                ViewUtils.vuSetVisibility(convertView, View.VISIBLE, R.id.story);
 
                 if (story.state == 2) {
                     story.state = 3;
 
                     try {
+                        View storyPanel = convertView.findViewById(R.id.story);
                         Animator anim = ViewAnimationUtils.createCircularReveal(storyPanel, storyPanel.getWidth(), 0, 0, Math.max(storyPanel.getWidth(), storyPanel.getHeight()));
                         anim.start();
                     } catch (Exception e) {
-                        // e.printStackTrace();
                     }
                 }
             }
@@ -278,28 +248,16 @@ public class ThreadedCommentsFragment extends BaseFragment {
 
     private class OnScrollListenerImpl implements AbsListView.OnScrollListener {
 
-        private int firstItem = -1;
-
         @Override
         public void onScrollStateChanged(AbsListView view, int scrollState) {
-//            Log.d("[hn]", "scroll = " + scrollState);
-//            switch (scrollState) {
-//                case SCROLL_STATE_IDLE:
-//                case SCROLL_STATE_TOUCH_SCROLL:
-//                case SCROLL_STATE_FLING:
-//            }
         }
 
         @Override
         public void onScroll(AbsListView view, final int firstVisibleItem, int visibleItemCount, int totalItemCount) {
             final int last = Math.min(firstVisibleItem + visibleItemCount, totalItemCount);
-//            Log.d("[hn]", "first = " + firstVisibleItem + ", last = " + last);
             Runnable runnable = new Runnable() {
                 public void run() {
-//                    if (firstItem != firstVisibleItem && last != 0) {
-//                        firstItem = firstVisibleItem;
                     loadStories(firstVisibleItem, last);
-//                    }
                 }
             };
             mHandler.postDelayed(runnable, 20);
@@ -320,13 +278,9 @@ public class ThreadedCommentsFragment extends BaseFragment {
                     public Object then(Task<Story> task) throws Exception {
                         story.update(task.getResult());
                         story.state = 2;
-                        if (getView() != null) {
-                            ListView listView = (ListView) getView().findViewById(R.id.list);
-//                            Log.d("[hn]", "position = " + position + " first = " + listView.getFirstVisiblePosition() + " last = " + listView.getLastVisiblePosition());
-                            if (listView.getFirstVisiblePosition() <= position && position <= listView.getLastVisiblePosition()) {
-//                                Log.d("[hn]", "updating view, title = " + story.title);
-                                mAdapter.notifyDataSetChanged();
-                            }
+                        ListView listView = (ListView) getView().findViewById(R.id.list);
+                        if (listView.getFirstVisiblePosition() <= position && position <= listView.getLastVisiblePosition()) {
+                            mAdapter.notifyDataSetChanged();
                         }
                         return null;
                     }
@@ -339,21 +293,14 @@ public class ThreadedCommentsFragment extends BaseFragment {
 
         @Override
         public Object then(Task<Story> task) throws Exception {
-            TextView textView;
-
-            textView = (TextView) mHeader.findViewById(R.id.number);
-            textView.setText("#" + (mPosition + 1));
+            ViewUtils.vuSetText(mHeader, "#" + (mPosition + 1), R.id.number);
+            ViewUtils.vuSetText(mHeader, DateUtils.getRelativeTimeSpanString(mStory.time * 1000) + " by " + mStory.by, R.id.meta);
+            ViewUtils.vuSetText(mHeader, String.valueOf(mStory.kids.size()), R.id.comment_num);
 
             TextView text = (TextView) mHeader.findViewById(R.id.text);
-            TextView meta = (TextView) mHeader.findViewById(R.id.meta);
-            TextView commentNum = (TextView) mHeader.findViewById(R.id.comment_num);
-
             text.setText(Html.fromHtml(mStory.text));
-            meta.setText(DateUtils.getRelativeTimeSpanString(mStory.time * 1000) + " by " + mStory.by);
-            commentNum.setText(String.valueOf(mStory.kids.size()));
 
             mAdapter = new BaseAdapterImpl(mStory);
-
 
             ListView listView = (ListView) getView().findViewById(R.id.list);
             listView.setAdapter(mAdapter);

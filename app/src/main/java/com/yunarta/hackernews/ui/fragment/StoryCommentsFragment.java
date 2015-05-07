@@ -2,7 +2,9 @@ package com.yunarta.hackernews.ui.fragment;
 
 import android.animation.Animator;
 import android.app.FragmentTransaction;
+import android.content.Intent;
 import android.content.res.Resources;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.v4.widget.SwipeRefreshLayout;
@@ -17,9 +19,14 @@ import android.view.ViewGroup;
 import android.widget.AbsListView;
 import android.widget.AdapterView;
 import android.widget.BaseAdapter;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import com.mobilesolutionworks.android.util.ViewUtils;
+import com.squareup.picasso.Picasso;
+import com.yunarta.hackernews.BuildConfig;
 import com.yunarta.hackernews.R;
 import com.yunarta.hackernews.api.RestAPIManager;
 import com.yunarta.hackernews.api.entity.Story;
@@ -27,6 +34,7 @@ import com.yunarta.hackernews.ui.base.BaseFragment;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.concurrent.Callable;
 
 import bolts.Continuation;
 import bolts.Task;
@@ -61,7 +69,7 @@ public class StoryCommentsFragment extends BaseFragment {
             mStory = (Story) args.getSerializable("story");
             mPosition = args.getInt("position");
             mTransitionName = args.getString("transitionName");
-        } else {
+        } else if (BuildConfig.DEBUG) {
             mStory = new Story(9504939);
             mStory.title = "NSA phone surveillance not authorized: U.S. appeals court";
             mStory.domain = "www.google.com";
@@ -131,6 +139,7 @@ public class StoryCommentsFragment extends BaseFragment {
                 Story story = mStory.comments.get(position - 1);
 
                 Resources resources = getResources();
+
                 view.setBackgroundColor(resources.getColor(android.R.color.white));
                 view.setElevation(resources.getDimension(R.dimen.card_elevation));
 
@@ -180,7 +189,6 @@ public class StoryCommentsFragment extends BaseFragment {
 
         @Override
         public Object getItem(int position) {
-//            Log.d("[hn]", "get item");
             return null;
         }
 
@@ -193,48 +201,20 @@ public class StoryCommentsFragment extends BaseFragment {
         public View getView(int position, View convertView, ViewGroup parent) {
             if (convertView == null) {
                 convertView = getActivity().getLayoutInflater().inflate(R.layout.cell_comment, null);
-//                convertView.setOnClickListener(new View.OnClickListener() {
-//                    @Override
-//                    public void onClick(View v) {
-////                        Toast.makeText(getActivity(), "Click on body", Toast.LENGTH_SHORT).show();
-//                    }
-//                });
-//
-//                TextView commentNum = (TextView) convertView.findViewById(R.id.comment_num);
-//                commentNum.setOnClickListener(new View.OnClickListener() {
-//                    @Override
-//                    public void onClick(View v) {
-////                        Toast.makeText(getActivity(), "Click on comment", Toast.LENGTH_SHORT).show();
-//                    }
-//                });
             }
 
             Story story = mStory.comments.get(position);
             convertView.setTransitionName("comment-" + story.id);
 
-            TextView textView;
-
-            textView = (TextView) convertView.findViewById(R.id.number);
-            textView.setText("#" + (position + 1));
-
-            TextView text = (TextView) convertView.findViewById(R.id.text);
-            TextView meta = (TextView) convertView.findViewById(R.id.meta);
-            TextView commentNum = (TextView) convertView.findViewById(R.id.comment_num);
-            TextView readMore = (TextView) convertView.findViewById(R.id.read_more);
-
-            View storyPanel = convertView.findViewById(R.id.story);
-//            Log.d("[hn]", "get view, text = " + story.text);
+            ViewUtils.vuSetText(convertView, "#" + (position + 1), R.id.number);
             if (TextUtils.isEmpty(story.text)) {
-                text.setText("...");
-                text.setMaxLines(1);
-                meta.setText("");
-
-                commentNum.setText("");
-                commentNum.setClickable(false);
-
-                readMore.setVisibility(View.GONE);
-                storyPanel.setVisibility(View.INVISIBLE);
+                ViewUtils.vuSetText(convertView, "...", R.id.text).setMaxLines(1);
+                ViewUtils.vuSetText(convertView, "", R.id.meta);
+                ViewUtils.vuSetText(convertView, "", R.id.comment_num);
+                ViewUtils.vuSetVisibility(convertView, View.GONE, R.id.read_more);
+                ViewUtils.vuSetVisibility(convertView, View.INVISIBLE, R.id.story);
             } else {
+                TextView text = (TextView) convertView.findViewById(R.id.text);
                 text.setMaxLines(Integer.MAX_VALUE);
                 String commentText = Html.fromHtml(story.text).toString();
 
@@ -248,27 +228,23 @@ public class StoryCommentsFragment extends BaseFragment {
                 if (maxLines > 4) {
                     text.setMaxLines(4);
 
-                    readMore.setText("Read more (" + (maxLines - 4) + " lines)");
-                    readMore.setVisibility(View.VISIBLE);
+                    ViewUtils.vuSetText(convertView, "Read more (" + (maxLines - 4) + " lines)", R.id.read_more).setVisibility(View.VISIBLE);
                 } else {
-                    readMore.setVisibility(View.VISIBLE);
+                    ViewUtils.vuSetVisibility(convertView, View.GONE, R.id.read_more);
                 }
 
-                meta.setText(DateUtils.getRelativeTimeSpanString(story.time * 1000) + " by " + story.by);
-                commentNum.setText(String.valueOf(story.kids.size()));
-                commentNum.setClickable(story.kids.size() > 0);
-                commentNum.setTag(story);
-
-                storyPanel.setVisibility(View.VISIBLE);
+                ViewUtils.vuSetText(convertView, DateUtils.getRelativeTimeSpanString(story.time * 1000) + " by " + story.by, R.id.meta);
+                ViewUtils.vuSetText(convertView, String.valueOf(story.kids.size()), R.id.comment_num);
+                ViewUtils.vuSetVisibility(convertView, View.VISIBLE, R.id.story);
 
                 if (story.state == 2) {
                     story.state = 3;
 
                     try {
+                        View storyPanel = convertView.findViewById(R.id.story);
                         Animator anim = ViewAnimationUtils.createCircularReveal(storyPanel, storyPanel.getWidth(), 0, 0, Math.max(storyPanel.getWidth(), storyPanel.getHeight()));
                         anim.start();
                     } catch (Exception e) {
-                        // e.printStackTrace();
                     }
                 }
             }
@@ -279,28 +255,16 @@ public class StoryCommentsFragment extends BaseFragment {
 
     private class OnScrollListenerImpl implements AbsListView.OnScrollListener {
 
-        private int firstItem = -1;
-
         @Override
         public void onScrollStateChanged(AbsListView view, int scrollState) {
-//            Log.d("[hn]", "scroll = " + scrollState);
-//            switch (scrollState) {
-//                case SCROLL_STATE_IDLE:
-//                case SCROLL_STATE_TOUCH_SCROLL:
-//                case SCROLL_STATE_FLING:
-//            }
         }
 
         @Override
         public void onScroll(AbsListView view, final int firstVisibleItem, int visibleItemCount, int totalItemCount) {
             final int last = Math.min(firstVisibleItem + visibleItemCount, totalItemCount);
-//            Log.d("[hn]", "first = " + firstVisibleItem + ", last = " + last);
             Runnable runnable = new Runnable() {
                 public void run() {
-//                    if (firstItem != firstVisibleItem && last != 0) {
-//                        firstItem = firstVisibleItem;
                     loadStories(firstVisibleItem, last);
-//                    }
                 }
             };
             mHandler.postDelayed(runnable, 20);
@@ -321,13 +285,10 @@ public class StoryCommentsFragment extends BaseFragment {
                     public Object then(Task<Story> task) throws Exception {
                         story.update(task.getResult());
                         story.state = 2;
-                        if (getView() != null) {
-                            ListView listView = (ListView) getView().findViewById(R.id.list);
-//                            Log.d("[hn]", "position = " + position + " first = " + listView.getFirstVisiblePosition() + " last = " + listView.getLastVisiblePosition());
-                            if (listView.getFirstVisiblePosition() <= position && position <= listView.getLastVisiblePosition()) {
-//                                Log.d("[hn]", "updating view, title = " + story.title);
-                                mAdapter.notifyDataSetChanged();
-                            }
+
+                        ListView listView = (ListView) getView().findViewById(R.id.list);
+                        if (listView.getFirstVisiblePosition() <= position && position <= listView.getLastVisiblePosition()) {
+                            mAdapter.notifyDataSetChanged();
                         }
                         return null;
                     }
@@ -341,20 +302,37 @@ public class StoryCommentsFragment extends BaseFragment {
         public Object then(Task<Story> task) throws Exception {
             mStory = task.getResult();
 
-            TextView textView;
+            ViewUtils.vuSetText(mHeader, "#" + (mPosition + 1), R.id.number);
+            ViewUtils.vuSetText(mHeader, mStory.title, R.id.title);
+            ViewUtils.vuSetText(mHeader, mStory.domain, R.id.domain);
+            ViewUtils.vuSetText(mHeader, mStory.score + " points by " + mStory.by + " " + DateUtils.getRelativeTimeSpanString(mStory.time * 1000), R.id.meta);
+            ViewUtils.vuSetText(mHeader, mStory.descendants, R.id.comment_num);
 
-            textView = (TextView) mHeader.findViewById(R.id.number);
-            textView.setText("#" + (mPosition + 1));
+            ImageView icon = ViewUtils.vuFind(mHeader, R.id.icon);
+            icon.setTag(mStory.url);
+            icon.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(final View v) {
+                    Task.call(new Callable<Object>() {
+                        @Override
+                        public Object call() throws Exception {
+                            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse((String) v.getTag()));
+                            startActivity(intent);
+                            return true;
+                        }
+                    }).continueWith(new Continuation<Object, Object>() {
+                        @Override
+                        public Object then(Task<Object> task) throws Exception {
+                            if (task.isFaulted()) {
+                                Toast.makeText(getActivity(), "Failed to open " + v.getTag(), Toast.LENGTH_SHORT).show();
+                            }
+                            return null;
+                        }
+                    });
+                }
+            });
 
-            TextView title = (TextView) mHeader.findViewById(R.id.title);
-            TextView domain = (TextView) mHeader.findViewById(R.id.domain);
-            TextView meta = (TextView) mHeader.findViewById(R.id.meta);
-            TextView commentNum = (TextView) mHeader.findViewById(R.id.comment_num);
-
-            title.setText(mStory.title);
-            domain.setText(mStory.domain);
-            meta.setText(DateUtils.getRelativeTimeSpanString(mStory.time * 1000) + " by " + mStory.by);
-            commentNum.setText(mStory.descendants);
+            Picasso.with(getActivity()).load("http://grabicon.com/icon?domain=" + mStory.domain + "&size=256&origin=github.com/yunarta").error(R.drawable.ic_launcher).into(icon);
 
             mAdapter = new BaseAdapterImpl(mStory);
 
