@@ -21,13 +21,12 @@ import bolts.Task;
  */
 public class RestAPIManager {
 
-    AsyncHttpClient client = new AsyncHttpClient();
-
     public static Task<TopStories> topStories(Context context) {
         final Task<TopStories>.TaskCompletionSource source = Task.create();
 
         if (true) {
             AsyncHttpClient client = new AsyncHttpClient();
+            client.setMaxRetriesAndTimeout(5, 30000);
             client.get(context, "https://hacker-news.firebaseio.com/v0/topstories.json", new TextHttpResponseHandler() {
                 @Override
                 public void onFailure(int statusCode, Header[] headers, String responseString, Throwable throwable) {

@@ -27,7 +27,8 @@ public class StoryLoaderManager {
 
     protected StoryLoaderManager() {
         mClient = new AsyncHttpClient();
-        mClient.setThreadPool(Executors.newScheduledThreadPool(10));
+        mClient.setThreadPool(Executors.newScheduledThreadPool(20));
+        mClient.setMaxRetriesAndTimeout(5, 30000);
 
         mGson = new GsonBuilder().create();
     }
