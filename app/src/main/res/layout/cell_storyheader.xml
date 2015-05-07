@@ -1,9 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
+
+
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/header"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:elevation="0dp"
+    android:background="#fff"
+    android:elevation="@dimen/card_elevation"
     android:orientation="horizontal">
 
     <LinearLayout
@@ -18,7 +22,10 @@
             android:id="@+id/title"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:padding="4dp"
+            android:paddingBottom="2dp"
+            android:paddingLeft="4dp"
+            android:paddingRight="4dp"
+            android:paddingTop="2dp"
             android:textColor="#000"
             tools:text="Text"
             tools:visibility="visible" />
@@ -27,7 +34,10 @@
             android:id="@+id/domain"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:padding="4dp"
+            android:paddingBottom="2dp"
+            android:paddingLeft="4dp"
+            android:paddingRight="4dp"
+            android:paddingTop="2dp"
             android:textSize="12sp"
             tools:text="Text"
             tools:visibility="visible" />
@@ -36,13 +46,13 @@
             android:id="@+id/meta"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:paddingBottom="2dp"
+            android:paddingLeft="4dp"
+            android:paddingRight="4dp"
+            android:paddingTop="2dp"
             android:textSize="12sp"
             tools:text="Text"
-            tools:visibility="visible"
-            android:paddingLeft="4dp"
-            android:paddingTop="4dp"
-            android:paddingRight="4dp"
-            android:paddingBottom="2dp" />
+            tools:visibility="visible" />
 
     </LinearLayout>
 
@@ -55,7 +65,10 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="top|end"
-            android:layout_margin="16dp"
+            android:layout_marginBottom="12dp"
+            android:layout_marginLeft="16dp"
+            android:layout_marginRight="16dp"
+            android:layout_marginTop="12dp"
             android:textColor="#000"
             android:textSize="12sp"
             tools:text="#500" />
@@ -65,7 +78,10 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="bottom|end"
-            android:layout_margin="16dp"
+            android:layout_marginBottom="12dp"
+            android:layout_marginLeft="16dp"
+            android:layout_marginRight="16dp"
+            android:layout_marginTop="12dp"
             android:drawableLeft="@drawable/ic_comment"
             android:drawablePadding="4dp"
             android:textColor="#000"
@@ -75,3 +91,5 @@
     </FrameLayout>
 
 </LinearLayout>
+
+    

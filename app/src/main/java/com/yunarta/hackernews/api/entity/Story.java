@@ -1,17 +1,19 @@
 package com.yunarta.hackernews.api.entity;
 
 import android.net.Uri;
+import android.text.TextUtils;
 
 import com.google.gson.Gson;
 import com.yunarta.hackernews.api.StoryLoaderManager;
 
 import java.io.Reader;
+import java.io.Serializable;
 import java.util.ArrayList;
 
 /**
  * Created by yunarta on 7/5/15.
  */
-public class Story {
+public class Story implements Serializable {
 
     public int id;
 
@@ -30,6 +32,8 @@ public class Story {
     public long parent;
 
     public ArrayList<Integer> kids;
+
+    public ArrayList<Story> comments;
 
     public String url;
 
@@ -55,13 +59,19 @@ public class Story {
         this.dead = story.dead;
         this.parent = story.parent;
         this.kids = story.kids;
+        if (this.kids == null) {
+            this.kids = new ArrayList<>();
+        }
+
         this.url = story.url;
         this.score = story.score;
         this.title = story.title;
         this.parts = story.parts;
         this.descendants = story.descendants;
 
-        this.domain = Uri.parse(url).getHost();
+        if (!TextUtils.isEmpty(url)) {
+            this.domain = Uri.parse(url).getHost();
+        }
     }
 
     public Story(int id) {

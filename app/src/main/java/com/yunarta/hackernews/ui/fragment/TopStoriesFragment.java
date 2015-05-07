@@ -1,16 +1,20 @@
 package com.yunarta.hackernews.ui.fragment;
 
 import android.animation.Animator;
+import android.app.FragmentTransaction;
+import android.content.res.Resources;
 import android.os.Bundle;
 import android.os.Handler;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.text.TextUtils;
 import android.text.format.DateUtils;
-import android.util.Log;
+import android.transition.TransitionInflater;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewAnimationUtils;
 import android.view.ViewGroup;
 import android.widget.AbsListView;
+import android.widget.AdapterView;
 import android.widget.BaseAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
@@ -54,26 +58,25 @@ public class TopStoriesFragment extends BaseFragment {
     public void onViewCreated(final View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        mLoadTask.onSuccess(new Continuation<TopStories, Object>() {
+        SwipeRefreshLayout refreshLayout = (SwipeRefreshLayout) view.findViewById(R.id.swipe_refresh_layout);
+        refreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
-            public Object then(Task<TopStories> task) throws Exception {
-                mStories = task.getResult();
-                mAdapter = new BaseAdapterImpl(mStories);
+            public void onRefresh() {
+                mLoadTask = RestAPIManager.topStories(getActivity());
+                mLoadTask.onSuccess(new UpdateTopStories()).
+                        continueWith(new Continuation<Object, Object>() {
+                            @Override
+                            public Object then(Task<Object> task) throws Exception {
+                                SwipeRefreshLayout refreshLayout = (SwipeRefreshLayout) view.findViewById(R.id.swipe_refresh_layout);
+                                refreshLayout.setRefreshing(false);
 
-                ListView listView = (ListView) view.findViewById(R.id.list);
-                listView.setOnScrollListener(new OnScrollListenerImpl());
-                listView.setAdapter(mAdapter);
-
-//                loadStories(listView.getFirstVisiblePosition(), listView.getLastVisiblePosition());
-                return null;
-            }
-        }).continueWith(new Continuation<Object, Object>() {
-            @Override
-            public Object then(Task<Object> task) throws Exception {
-                mLoadTask = null;
-                return null;
+                                return null;
+                            }
+                        });
             }
         });
+
+        mLoadTask.onSuccess(new UpdateTopStories());
     }
 
     @Override
@@ -96,7 +99,7 @@ public class TopStoriesFragment extends BaseFragment {
 
         @Override
         public Object getItem(int position) {
-            Log.d("[hn]", "get item");
+//            Log.d("[hn]", "get item");
             return null;
         }
 
@@ -112,6 +115,7 @@ public class TopStoriesFragment extends BaseFragment {
             }
 
             Story story = mStories.get(position);
+            convertView.setTransitionName("transition-" + story.id);
 
             TextView textView;
 
@@ -123,8 +127,8 @@ public class TopStoriesFragment extends BaseFragment {
             TextView meta = (TextView) convertView.findViewById(R.id.meta);
             TextView commentNum = (TextView) convertView.findViewById(R.id.comment_num);
 
-            View storyPanel =  convertView.findViewById(R.id.story);
-            Log.d("[hn]", "get view, title = " + story.title);
+            View storyPanel = convertView.findViewById(R.id.story);
+//            Log.d("[hn]", "get view, title = " + story.title);
             if (TextUtils.isEmpty(story.title)) {
                 title.setText("...");
                 domain.setText("");
@@ -135,7 +139,7 @@ public class TopStoriesFragment extends BaseFragment {
             } else {
                 title.setText(story.title);
                 domain.setText(story.domain);
-                meta.setText(DateUtils.getRelativeTimeSpanString(story.time) + " by " + story.by);
+                meta.setText(DateUtils.getRelativeTimeSpanString(story.time * 1000) + " by " + story.by);
                 commentNum.setText(story.descendants);
 
                 storyPanel.setVisibility(View.VISIBLE);
@@ -162,7 +166,7 @@ public class TopStoriesFragment extends BaseFragment {
 
         @Override
         public void onScrollStateChanged(AbsListView view, int scrollState) {
-            Log.d("[hn]", "scroll = " + scrollState);
+//            Log.d("[hn]", "scroll = " + scrollState);
 //            switch (scrollState) {
 //                case SCROLL_STATE_IDLE:
 //                case SCROLL_STATE_TOUCH_SCROLL:
@@ -173,12 +177,12 @@ public class TopStoriesFragment extends BaseFragment {
         @Override
         public void onScroll(AbsListView view, final int firstVisibleItem, int visibleItemCount, int totalItemCount) {
             final int last = Math.min(firstVisibleItem + visibleItemCount, totalItemCount);
-            Log.d("[hn]", "first = " + firstVisibleItem + ", last = " + last);
+//            Log.d("[hn]", "first = " + firstVisibleItem + ", last = " + last);
             Runnable runnable = new Runnable() {
                 public void run() {
 //                    if (firstItem != firstVisibleItem && last != 0) {
 //                        firstItem = firstVisibleItem;
-                        loadStories(firstVisibleItem, last);
+                    loadStories(firstVisibleItem, last);
 //                    }
                 }
             };
@@ -200,9 +204,9 @@ public class TopStoriesFragment extends BaseFragment {
                         story.state = 2;
                         if (getView() != null) {
                             ListView listView = (ListView) getView().findViewById(R.id.list);
-                            Log.d("[hn]", "position = " + position + " first = " + listView.getFirstVisiblePosition() + " last = " + listView.getLastVisiblePosition());
+//                            Log.d("[hn]", "position = " + position + " first = " + listView.getFirstVisiblePosition() + " last = " + listView.getLastVisiblePosition());
                             if (listView.getFirstVisiblePosition() <= position && position <= listView.getLastVisiblePosition()) {
-                                Log.d("[hn]", "updating view, title = " + story.title);
+//                                Log.d("[hn]", "updating view, title = " + story.title);
                                 mAdapter.notifyDataSetChanged();
                             }
                         }
@@ -210,6 +214,59 @@ public class TopStoriesFragment extends BaseFragment {
                     }
                 });
             }
+        }
+    }
+
+    private class UpdateTopStories implements Continuation<TopStories, Object> {
+
+
+        @Override
+        public Object then(Task<TopStories> task) throws Exception {
+            mStories = task.getResult();
+            mAdapter = new BaseAdapterImpl(mStories);
+
+            ListView listView = (ListView) getView().findViewById(R.id.list);
+            listView.setOnScrollListener(new OnScrollListenerImpl());
+            listView.setAdapter(mAdapter);
+            listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                @Override
+                public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                    Story story = mStories.get(position);
+
+                    Resources resources = getResources();
+                    view.setBackgroundColor(resources.getColor(android.R.color.white));
+                    view.setElevation(resources.getDimension(R.dimen.card_elevation));
+
+                    String transitionName = "transition-" + story.id;
+
+                    TransitionInflater ti = TransitionInflater.from(getActivity());
+
+                    setSharedElementReturnTransition(ti.inflateTransition(R.transition.tr_read_story));
+                    setExitTransition(ti.inflateTransition(android.R.transition.explode));
+
+                    Bundle args = new Bundle();
+                    args.putString("transitionName", transitionName);
+                    args.putInt("position", position);
+
+                    args.putSerializable("story", story);
+
+                    StoryCommentsFragment fragment = new StoryCommentsFragment();
+                    fragment.setArguments(args);
+
+                    fragment.setSharedElementEnterTransition(ti.inflateTransition(R.transition.tr_read_story));
+
+                    fragment.setEnterTransition(ti.inflateTransition(android.R.transition.explode));
+
+                    FragmentTransaction ft = getFragmentManager().beginTransaction();
+                    ft.addToBackStack("top");
+                    ft.addSharedElement(view, transitionName);
+                    ft.replace(R.id.fragment_container, fragment);
+                    ft.commit();
+                }
+            });
+
+            //                loadStories(listView.getFirstVisiblePosition(), listView.getLastVisiblePosition());
+            return null;
         }
     }
 }

@@ -1,5 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="AppTheme" parent="android:Theme.Material.Light">
+        <!-- colorPrimary is used, for instance, for the default ActionBar
+       (but not Toolbar) background.
+        We specify the same color for the toolbar background in
+        toolbar.xml.. -->
+        <item name="android:colorPrimary">#f60</item>
+
+        <!-- colorPrimaryDark is used for the status bar (with the
+             battery, clock, etc). -->
+        <item name="android:colorPrimaryDark">#f60</item>
+
+        <!-- colorAccent is used as the default value for
+             colorControlActivated which is used to tint widgets. -->
+        <item name="android:colorAccent">#f60</item>
     </style>
 </resources>
