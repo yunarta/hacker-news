@@ -1,6 +1,5 @@
 package com.yunarta.hackernews.ui.fragment;
 
-import android.animation.Animator;
 import android.app.FragmentTransaction;
 import android.content.Intent;
 import android.content.res.Resources;
@@ -10,10 +9,8 @@ import android.os.Handler;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.text.TextUtils;
 import android.text.format.DateUtils;
-import android.transition.TransitionInflater;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewAnimationUtils;
 import android.view.ViewGroup;
 import android.widget.AbsListView;
 import android.widget.BaseAdapter;
@@ -22,7 +19,6 @@ import android.widget.ListView;
 import android.widget.Toast;
 
 import com.mobilesolutionworks.android.util.ViewUtils;
-import com.squareup.picasso.Picasso;
 import com.yunarta.hackernews.R;
 import com.yunarta.hackernews.api.RestAPIManager;
 import com.yunarta.hackernews.api.entity.Story;
@@ -148,14 +144,14 @@ public class TopStoriesFragment extends BaseFragment {
 
                         Resources resources = getResources();
                         view.setBackgroundColor(resources.getColor(android.R.color.white));
-                        view.setElevation(resources.getDimension(R.dimen.card_elevation));
+//                        view.setElevation(resources.getDimension(R.dimen.card_elevation));
 
                         String transitionName = "transition-" + story.id;
 
-                        TransitionInflater ti = TransitionInflater.from(getActivity());
-
-                        setSharedElementReturnTransition(ti.inflateTransition(R.transition.tr_read_story));
-                        setExitTransition(ti.inflateTransition(android.R.transition.explode));
+//                        TransitionInflater ti = TransitionInflater.from(getActivity());
+//
+//                        setSharedElementReturnTransition(ti.inflateTransition(R.transition.tr_read_story));
+//                        setExitTransition(ti.inflateTransition(android.R.transition.explode));
 
                         Bundle args = new Bundle();
                         args.putString("transitionName", transitionName);
@@ -166,13 +162,13 @@ public class TopStoriesFragment extends BaseFragment {
                         StoryCommentsFragment fragment = new StoryCommentsFragment();
                         fragment.setArguments(args);
 
-                        fragment.setSharedElementEnterTransition(ti.inflateTransition(R.transition.tr_read_story));
-
-                        fragment.setEnterTransition(ti.inflateTransition(android.R.transition.explode));
+//                        fragment.setSharedElementEnterTransition(ti.inflateTransition(R.transition.tr_read_story));
+//
+//                        fragment.setEnterTransition(ti.inflateTransition(android.R.transition.explode));
 
                         FragmentTransaction ft = getFragmentManager().beginTransaction();
                         ft.addToBackStack("top");
-                        ft.addSharedElement(view, transitionName);
+//                        ft.addSharedElement(view, transitionName);
                         ft.replace(R.id.fragment_container, fragment);
                         ft.commit();
 
@@ -181,7 +177,7 @@ public class TopStoriesFragment extends BaseFragment {
             }
 
             Story story = mStories.get(position);
-            convertView.setTransitionName("transition-" + story.id);
+//            convertView.setTransitionName("transition-" + story.id);
             convertView.setTag(R.id.position, position);
 
             ViewUtils.vuSetText(convertView, "#" + (position + 1), R.id.number);
@@ -196,7 +192,7 @@ public class TopStoriesFragment extends BaseFragment {
             } else {
                 ImageView icon = ViewUtils.vuFind(convertView, R.id.icon);
                 icon.setTag(story.url);
-                Picasso.with(getActivity()).load("http://grabicon.com/icon?domain=" + story.domain + "&size=256&origin=github.com/yunarta").error(R.drawable.ic_launcher).into(icon);
+//                Picasso.with(getActivity()).load("http://grabicon.com/icon?domain=" + story.domain + "&size=256&origin=github.com/yunarta").error(R.drawable.ic_launcher).into(icon);
 
                 ViewUtils.vuSetText(convertView, story.title, R.id.title);
                 ViewUtils.vuSetText(convertView, story.domain, R.id.domain);
@@ -209,8 +205,8 @@ public class TopStoriesFragment extends BaseFragment {
 
                     try {
                         View storyPanel = convertView.findViewById(R.id.story);
-                        Animator anim = ViewAnimationUtils.createCircularReveal(storyPanel, storyPanel.getWidth(), 0, 0, Math.max(storyPanel.getWidth(), storyPanel.getHeight()));
-                        anim.start();
+//                        Animator anim = ViewAnimationUtils.createCircularReveal(storyPanel, storyPanel.getWidth(), 0, 0, Math.max(storyPanel.getWidth(), storyPanel.getHeight()));
+//                        anim.start();
                     } catch (Exception e) {
                         // e.printStackTrace();
                     }

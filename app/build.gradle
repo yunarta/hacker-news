@@ -1,21 +1,25 @@
 apply plugin: 'com.android.application'
 apply plugin: 'versionPlugin'
 
+apply from: ('https://raw.githubusercontent.com/yunarta/works-gradle-script/master/auto-configure.gradle')
+
 versionPlugin {
     buildTypesMatcher = 'release'
     fileNameFormat = '$projectName-$flavorName-ver_$versionName-build_$versionCode'
 }
 
 android {
-    compileSdkVersion 21
-    buildToolsVersion "21.1.2"
+    compileSdkVersion autoCompileSdkVersion(22)
+    buildToolsVersion autoBuildToolsVersion('22.0.1')
+
+    useLibrary 'org.apache.http.legacy'
 
     defaultConfig {
         applicationId "com.yunarta.hackernews"
-        minSdkVersion 21
-        targetSdkVersion 21
-        versionCode 1
-        versionName "1.0"
+        minSdkVersion 14
+        targetSdkVersion 23
+        versionCode 2
+        versionName "1.0-android_14"
     }
 
     signingConfigs {
@@ -38,10 +42,10 @@ android {
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
+    compile 'com.android.support:support-v4:' + autoSupportLibVersion('22.2.0')
     compile 'com.loopj.android:android-async-http:1.4.6'
     compile 'com.parse.bolts:bolts-android:1.2.0'
     compile 'com.google.code.gson:gson:2.3'
-    compile 'com.android.support:support-v4:+'
     compile 'com.mobilesolutionworks:works-util:1.0.4'
     compile 'com.squareup.picasso:picasso:2.5.2'
 }
